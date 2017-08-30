@@ -6,7 +6,7 @@ module HasSpecs
 
     def root
       if defined? Rails
-        @root ||= File.join(::Rails.root,'app')
+        @root ||= File.join(::Rails.root, 'app/')
       else
        @root ||= Dir.pwd
      end
@@ -17,7 +17,7 @@ module HasSpecs
     end
 
     def spec_root
-      @spec_root ||= File.join(Dir.pwd,'spec')
+      @spec_root ||= File.join(::Rails.root, 'spec')
     end
 
     def exclude
@@ -44,31 +44,46 @@ module HasSpecs
       @suffix ||= '_spec'
     end
 
+    def ignored_suffix_directories=(directories)
+      @ignored_suffix_directories = directories
+    end
+
+    def ignored_suffix_directories
+      @ignored_suffix_directories ||= []
+    end
+
     def extension
       [".rb", ".erb", ".jbuilder"]
     end
 
-    def include
-      Dir.glob(File.join(self.root,'**/*/'))
-        .map!{|d| d.gsub(@root, '').sub(File::SEPARATOR,'').chomp(File::SEPARATOR) }
-        .delete_if do |directory|
-          found = false
-          self.exclude.each do |excluded|
-            next if found
-            found = directory.start_with?(excluded)
-          end
-          found
-        end
+    def application_roots
+      if defined? Rails
+        [root] + Dir.glob(File.join(::Rails.root, 'applications', '*', 'app/'))
+      else
+        [root]
+      end
     end
 
-    def to_spec_filename(filename)
-      if File.extname(filename) != '.rb' 
-        filename = File.basename(filename) + suffix + ".rb"
-      else
-        extension = File.extname(filename)
-        basename = File.basename(filename, extension)
-        filename = basename + suffix + extension
+    def include
+      directories = []
+      application_roots.each do |app_root|
+        directories = directories + Dir.glob(File.join(app_root, '**/*/'))
       end
+      directories.delete_if { |directory| exclude_directory? directory }
+    end
+
+    def path_builder
+      @path_builder ||= PathBuilder.new(self)
+    end
+
+    private
+
+    def exclude_directory?(directory)
+      matches = self.exclude.find do |excluded|
+        regex = Regexp.new(Regexp.escape(File.join(excluded, '/')))
+        directory =~ regex
+      end
+      !!matches
     end
   end
 end

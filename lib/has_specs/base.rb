@@ -2,20 +2,26 @@ module HasSpecs
   class Base
     def self.verify(config)
       missing = []
-      config.include.each do |directory|
-        lookat = File.join(config.root, directory,"*[("+config.extension.join(')(')+')]')
-        Dir.glob(lookat).each do |file|
-          spec_dir = File.dirname(file).gsub(config.root, config.spec_root)
-          extension = File.extname(file)
-          basename =  File.basename(file).chomp(extension)
-          spec = config.to_spec_filename(file)
-          spec_file = File.join(spec_dir,spec)
-          unless config.ignore.include?(File.basename file) || File.exist?(spec_file)
-            missing.push(spec_file)
+
+      included_directories = config.include
+      included_directories.each do |directory|
+        ruby_file_matcher = '*[(' + config.extension.join(')(') + ')]'
+        lookat = File.join(directory, ruby_file_matcher)
+
+        files = Dir.glob(lookat)
+        files.each do |filename|
+          next if File.directory? filename
+
+          full_spec_file_path = config.path_builder.full_spec_file_path_for(filename)
+
+          file_is_ignored = config.ignore.include?(File.basename filename)
+          unless file_is_ignored || File.exist?(full_spec_file_path)
+            missing << full_spec_file_path
           end
         end
       end
-      return missing
+
+      missing
     end
   end
 end

@@ -1,6 +1,7 @@
 require "has_specs/version"
 require "has_specs/configuration"
 require 'has_specs/base'
+require 'has_specs/path_builder'
 
 module HasSpecs
   class MatchingSpecFileDoesNotExist < StandardError;   end
@@ -8,11 +9,23 @@ module HasSpecs
   class << self
     def verify
       missing = HasSpecs::Base.verify(self.configuration)
-      if missing != [] 
-        puts "\n######################\nHasSpecs Missing Specs:\n"
+      if missing != []
+        puts "\n======== Missing Spec Files ========\n"
         puts missing.join("\n")
-        puts "\n######################\n\n"
+        puts   "====================================\n"
       end
+      missing.length
+    end
+
+    def verify!
+      num_missing = verify
+      if num_missing > 0
+        abort("There are #{num_missing} missing files")
+      end
+    end
+
+    def configure
+      yield configuration if block_given?
     end
 
     def configuration
