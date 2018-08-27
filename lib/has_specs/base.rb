@@ -14,7 +14,7 @@ module HasSpecs
 
           full_spec_file_path = config.path_builder.full_spec_file_path_for(filename)
 
-          file_is_ignored = config.ignore.include?(File.basename filename)
+          file_is_ignored = config.ignore.include?(File.basename filename) || config.ignore.include?(full_spec_file_path)
           unless file_is_ignored || File.exist?(full_spec_file_path)
             missing << full_spec_file_path
           end
